@@ -1,0 +1,12 @@
+langchain
+flask
+openai
+latextools
+python-pptx
+duckduckgo_search
+requests
+langchain_core
+langchain_openai
+langchain-google-genai
+python-dotenv
+markdown2

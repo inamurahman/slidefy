@@ -1,51 +1,91 @@
-from openai import OpenAI
-import streamlit as st
-import os, time
-from pptx import Presentation
-key = os.getenv("FOSS_API")
-
-client = OpenAI(api_key=key)
-def generate_content(subject):
-  prompt = "Generate a PowerPoint presentation on the topic of sustainable energy solutions. Include an introduction slide with a captivating title and overview, followed by slides highlighting key concepts such as solar energy, wind power, and hydroelectricity. Each concept should be presented with bullet points summarizing its advantages and applications. Intersperse the presentation with slides containing graphs and charts illustrating global trends in renewable energy adoption and case studies showcasing successful implementation projects. Conclude the presentation with a summary slide outlining key takeaways and recommendations for transitioning towards a sustainable energy future. Additionally, include slides for a Q&A section at the end of the presentation, providing placeholders for audience inquiries and possible answers.in markdown format."
-  completion = client.chat.completions.create(
-  model="gpt-3.5-turbo",
-  messages=[
-    {"role": "system", "content": prompt},
-    {"role": "user", "content": "create a presentation about" + subject + "(only title in first slide)"}
-  ]
-)
-
-  return (completion.choices[0].message.content)
-
-def create_presentation(content):
-  presentation = Presentation()
-
-  # Add slides to the presentation
-  slides = content.split("\n\n")
-  for slide_content in slides:
-      slide = presentation.slides.add_slide(presentation.slide_layouts[1])
-      slide.shapes.title.text = slide_content
-
-  # Save the presentation as a PowerPoint file
-  presentation.save("/home/inam/slidefy/presentation.pptx")
+from flask import Flask, jsonify, render_template, request, redirect, url_for, send_file
+import time, os
+import threading
+import lang
+import markdown2
+app = Flask(__name__)
 
 
-st.title("Slidefy, PowerPoint Presentation Generator")
-subject = st.text_input("Enter the subject of the presentation")
+slide = {}
 
-def save_md(content):
-  with open("presentation.md", "w") as file:
-    file.write(content)
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    if request.method == 'POST':
+        prompt = ''
+        prompt = request.form['prompt']
+        slide['prompt'] = prompt
+        return redirect(url_for('options'))
+    return render_template('index.html')
 
-if st.button("Generate"):
-  start = time.time()
-  st.info("Generating presentation slides...")
-  content = generate_content(subject)
-  save_md(content)
-  st.success("Presentation slides generated successfully!")
-  end = time.time()
-  st.write(f"Time taken: {end - start:.2f} seconds")
+@app.route('/options', methods=['GET', 'POST'])
+def options():
+    if request.method == 'POST':
+        slide['fileType'] = request.form['fileType']
+        slide['nofpages'] = request.form['nofpages']
+        slide['theme'] = request.form['theme']
+        return redirect(url_for('generate'))
+    return render_template('options.html')
 
-  #give a new link to view another page
-  st.markdown("[View the presentation](http://localhost:8501/presentation)")
-  st.markdown("[open presentation](./presentation.md)")
+@app.route('/generate', methods=['GET'])
+def generate():
+    thread = threading.Thread(target=prepare)
+    thread.start()
+    return render_template('generate.html', slide=slide)
+
+@app.route('/status', methods=['GET'])
+def status():
+    return jsonify({'progress': slide['progress'], 'status': slide['status']})
+
+@app.route('/view_slide')
+def view_slide():
+    if slide['fileType'] == 'markdown':
+        # Read Markdown content from file
+        with open('output/slides.md', 'r') as file:
+            markdown_content = file.read()
+
+        # Convert Markdown to HTML
+        #html_content = markdown2.markdown(markdown_content)
+        slides = markdown_content.split('---')
+        return render_template('view_markdown.html', slides=slides)
+    if slide['fileType'] == 'latex':
+        pdfpath = "slides.pdf"
+        return send_file(pdfpath, as_attachment=False)
+
+
+def prepare():
+    if slide['fileType'] == 'markdown':
+        print('Generating markdown slides...')
+        slide['progress'] = 20
+        slide['status'] = 'Generating markdown slides...'
+        markdown = lang.generate_markdown_slide(slide['prompt'], slide['nofpages'])
+        slide['progress'] = 40
+        slide['status'] = 'markdown content generated...'
+        md = lang.replace_images(markdown)
+        slide['progress'] = 80
+        slide['status'] = 'Images added...'
+        with open('output/slides.md', 'w') as f:
+            f.write(md)
+        slide['progress'] = 90
+        slide['status'] = 'Slides saved...'
+        time.sleep(1)
+        slide['progress'] = 100
+        slide['status'] = 'Slides generated successfully!'
+
+    if slide['fileType'] == 'latex':
+        print('Generating latex slides...')
+        slide['progress'] = 20
+        slide['status'] = 'Generating latex slides...'
+        latex = lang.generate_latex(slide['prompt'], slide['nofpages'])
+        slide['progress'] = 40
+        slide['status'] = 'latex content generated...'
+        with open('output/slides.tex', 'w') as f:
+            f.write(latex)
+        slide['progress'] = 90
+        slide['status'] = 'Slides saved...'
+        os.system('pdflatex output/slides.tex')
+        slide['progress'] = 100
+        slide['status'] = 'Slides generated successfully!'
+    return 0
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0')

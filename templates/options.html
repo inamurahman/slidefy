@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Slidefy</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="icon" href="{{ url_for('static',filename='magic.png')}}">
+    <style>
+        .form-control::placeholder { /* Chrome, Firefox, Opera, Safari 10.1+ */
+            color: rgb(97, 86, 86);
+            opacity: 1; /* Firefox */
+}
+    </style>
+  </head>
+  <body>
+    <div class="container d-flex justify-content-center align-items-center " style="height: 100vh;">
+        <div class="container mt-5">
+            <h2>Choose your options</h2>
+            <form action="/options" method="post">
+              <div class="mb-3">
+                <label for="typeSelect" class="form-label">File format:</label>
+                <select class="form-select" id="typeSelect" name="fileType">
+                  <option value="markdown">Markdown</option>
+                  <option value="latex">LaTeX</option>
+                  <option value="pptx">PPTX</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="pagesInput" class="form-label">Number of Pages:</label>
+                <input type="number" value="8" min="5" max="12" class="form-control" id="pagesInput" name="nofpages" required>
+              </div>
+              <div class="mb-3">
+                <label for="themeSelect" class="form-label">Select Theme:</label>
+                <select class="form-select" id="themeSelect" name="theme">
+                  <option value="theme1">Theme 1</option>
+                  <option value="theme2">Theme 2</option>
+                  <option value="theme3">Theme 3</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="linkInput1" class="form-label">Link 1:</label>
+                <input type="text" class="form-control" id="linkInput1">
+              </div>
+              <div class="mb-3">
+                <label for="linkInput2" class="form-label">Link 2:</label>
+                <input type="text" class="form-control" id="linkInput2">
+              </div>
+              <button type="submit" class="btn btn-outline-success btn-lg">Generate</button>
+            </form>
+          </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+  $(document).ready(function() {
+    $('#optionsForm').submit(function(event) {
+      event.preventDefault();
+      var formData = {
+        prompt: $('#promptInput').val()
+      };
+      $.ajax({
+        type: 'POST',
+        url: '/options',
+        data: formData,
+        success: function(response) {
+          window.location.href = '/generate'; // Redirect to the generate page
+        },
+        error: function(error) {
+          console.log('Error:', error);
+        }
+      });
+    });
+  });
+</script>
+  </body>
+</html>

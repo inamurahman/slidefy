@@ -1,0 +1,14 @@
+<!doctype html>
+<html class="theme-3">
+    <link rel="icon" href="{{ url_for('static',filename='magic.png')}}">
+<meta charset="utf-8" />
+<link href="https://dbwebb.se/cdn/css/html-slideshow_v1.1.0.bundle.min.css" rel="stylesheet" />
+<script src="https://dbwebb.se/cdn/js/html-slideshow_v1.1.0.bundle.min.js"></script>
+
+<title>html-slides</title>
+{% for slide in slides %}
+<script data-role="slide" data-markdown type="text/html">
+    {{ slide }}
+</script>
+{% endfor %}
+</html>
